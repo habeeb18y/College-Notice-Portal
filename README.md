@@ -33,7 +33,7 @@ The system provides role-based access control with separate dashboards for Admin
 - Receive Announcements
   
 
-*🛠️ Technology Stack
+#🛠️ Technology Stack
 
  Frontend
 - HTML
