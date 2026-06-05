@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Dashboard - Notice Board System</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="../../css/style.css">
+</head>
+<body>
+  <div id="navbar"></div>
+  
+  <div class="page-container">
+    <div class="container">
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1><i class="fas fa-chart-line me-2"></i>Admin Dashboard</h1>
+      </div>
+      
+      <div id="statsCards" class="row mb-4">
+        <!-- Stats cards will be loaded here -->
+      </div>
+      
+      <div class="row">
+        <div class="col-md-6 mb-4">
+          <div class="card shadow-sm">
+            <div class="card-header">
+              <h5 class="mb-0"><i class="fas fa-users me-2"></i>User Statistics</h5>
+            </div>
+            <div class="card-body">
+              <canvas id="userChart"></canvas>
+            </div>
+          </div>
+        </div>
+        
+        <div class="col-md-6 mb-4">
+          <div class="card shadow-sm">
+            <div class="card-header">
+              <h5 class="mb-0"><i class="fas fa-bell me-2"></i>Notice Statistics</h5>
+            </div>
+            <div class="card-body">
+              <canvas id="noticeChart"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="row">
+        <div class="col-12">
+          <div class="card shadow-sm">
+            <div class="card-header">
+              <h5 class="mb-0"><i class="fas fa-list me-2"></i>Quick Actions</h5>
+            </div>
+            <div class="card-body">
+              <div class="row">
+                <div class="col-md-3 mb-3">
+                  <a href="users.html" class="btn btn-primary w-100">
+                    <i class="fas fa-users me-2"></i>Manage Users
+                  </a>
+                </div>
+                <div class="col-md-3 mb-3">
+                  <a href="notices.html" class="btn btn-info w-100">
+                    <i class="fas fa-bell me-2"></i>Manage Notices
+                  </a>
+                </div>
+                <div class="col-md-3 mb-3">
+                  <a href="classes.html" class="btn btn-success w-100">
+                    <i class="fas fa-graduation-cap me-2"></i>Manage Classes
+                  </a>
+                </div>
+                <div class="col-md-3 mb-3">
+                  <a href="faculty-assignments.html" class="btn btn-warning w-100">
+                    <i class="fas fa-link me-2"></i>Faculty Assignments
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
+  <script src="../../js/config.js"></script>
+  <script src="../../js/auth.js"></script>
+  <script src="../../js/api.js"></script>
+  <script src="../../js/utils.js"></script>
+  <script src="../../js/components.js"></script>
+  
+  <script>
+    // Check authentication
+    Auth.requireAuth([ROLES.ADMIN]);
+    
+    // Load navbar
+    document.getElementById('navbar').innerHTML = Components.createNavbar(ROLES.ADMIN);
+    
+    // Load dashboard data
+    async function loadDashboard() {
+      try {
+        const data = await API.getAdminDashboard();
+        
+        // Display stats cards
+        const statsHTML = `
+          ${Components.createStatsCard('Total Admins', data.users.admin, 'fas fa-user-shield', 'danger')}
+          ${Components.createStatsCard('Total Faculty', data.users.faculty, 'fas fa-chalkboard-teacher', 'primary')}
+          ${Components.createStatsCard('Total Students', data.users.student, 'fas fa-user-graduate', 'success')}
+        `;
+        document.getElementById('statsCards').innerHTML = statsHTML;
+        
+        // Display notice stats
+        const noticeStatsHTML = `
+          ${Components.createStatsCard('Total Notices', data.notices.total, 'fas fa-bell', 'info')}
+          ${Components.createStatsCard('All Notices', data.notices.all, 'fas fa-globe', 'warning')}
+          ${Components.createStatsCard('Total Classes', data.totalClasses, 'fas fa-graduation-cap', 'secondary')}
+        `;
+        document.getElementById('statsCards').innerHTML += noticeStatsHTML;
+        
+        // Create user chart
+        createUserChart(data.users);
+        
+        // Create notice chart
+        createNoticeChart(data.notices);
+        
+      } catch (error) {
+        console.error('Failed to load dashboard:', error);
+        Utils.showToast('Failed to load dashboard data', 'danger');
+      }
+    }
+    
+    // Create user chart
+    function createUserChart(users) {
+      const ctx = document.getElementById('userChart').getContext('2d');
+      new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: ['Admins', 'Faculty', 'Students'],
+          datasets: [{
+            data: [users.admin, users.faculty, users.student],
+            backgroundColor: ['#dc3545', '#0d6efd', '#198754']
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: {
+              position: 'bottom'
+            }
+          }
+        }
+      });
+    }
+    
+    // Create notice chart
+    function createNoticeChart(notices) {
+      const ctx = document.getElementById('noticeChart').getContext('2d');
+      new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: ['All Users', 'Faculty Only', 'Class Specific'],
+          datasets: [{
+            label: 'Number of Notices',
+            data: [notices.all, notices.faculty, notices.class],
+            backgroundColor: ['#0dcaf0', '#ffc107', '#0d6efd']
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: {
+              display: false
+            }
+          },
+          scales: {
+            y: {
+              beginAtZero: true
+            }
+          }
+        }
+      });
+    }
+    
+    // Load dashboard on page load
+    loadDashboard();
+  </script>
+</body>
+</html>
+

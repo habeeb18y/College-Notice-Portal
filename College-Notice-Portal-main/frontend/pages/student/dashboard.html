@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Student Dashboard - Notice Board System</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="../../css/style.css">
+</head>
+<body>
+  <div id="navbar"></div>
+  
+  <div class="page-container">
+    <div class="container">
+      <h1 class="mb-4"><i class="fas fa-home me-2"></i>Student Dashboard</h1>
+      
+      <div class="row mb-4">
+        <div class="col-md-6 mb-4">
+          <div class="card shadow-sm border-primary">
+            <div class="card-body text-center">
+              <i class="fas fa-bell text-primary" style="font-size: 3rem;"></i>
+              <h2 class="mt-3" id="noticeCount">-</h2>
+              <p class="text-muted">Available Notices</p>
+              <a href="notices.html" class="btn btn-primary">
+                <i class="fas fa-eye me-2"></i>View Notices
+              </a>
+            </div>
+          </div>
+        </div>
+        
+        <div class="col-md-6 mb-4">
+          <div class="card shadow-sm border-success">
+            <div class="card-body">
+              <h5 class="card-title"><i class="fas fa-user me-2"></i>My Information</h5>
+              <div id="userInfo" class="mt-3">
+                <p><strong>Name:</strong> <span id="userName">Loading...</span></p>
+                <p><strong>Email:</strong> <span id="userEmail">Loading...</span></p>
+                <p><strong>Class:</strong> <span id="userClass">Loading...</span></p>
+              </div>
+              <a href="profile.html" class="btn btn-success">
+                <i class="fas fa-edit me-2"></i>Edit Profile
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="card shadow-sm">
+        <div class="card-header">
+          <h5 class="mb-0"><i class="fas fa-bell me-2"></i>Recent Notices</h5>
+        </div>
+        <div class="card-body" id="recentNotices">
+          ${Components.createLoadingSpinner()}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="../../js/config.js"></script>
+  <script src="../../js/auth.js"></script>
+  <script src="../../js/api.js"></script>
+  <script src="../../js/utils.js"></script>
+  <script src="../../js/components.js"></script>
+  
+  <script>
+    Auth.requireAuth([ROLES.STUDENT]);
+    document.getElementById('navbar').innerHTML = Components.createNavbar(ROLES.STUDENT);
+    
+    async function loadDashboard() {
+      try {
+        const data = await API.getStudentDashboard();
+        
+        document.getElementById('noticeCount').textContent = data.availableNotices;
+        
+        if (data.userInfo) {
+          document.getElementById('userName').textContent = data.userInfo.name;
+          document.getElementById('userEmail').textContent = data.userInfo.email;
+          document.getElementById('userClass').textContent = data.userInfo.class_name || 'Not assigned';
+        }
+        
+        loadRecentNotices();
+        
+      } catch (error) {
+        Utils.showToast('Failed to load dashboard', 'danger');
+      }
+    }
+    
+    async function loadRecentNotices() {
+      try {
+        const data = await API.getStudentNotices();
+        const recentNotices = data.notices.slice(0, 5);
+        
+        const container = document.getElementById('recentNotices');
+        
+        if (recentNotices.length === 0) {
+          container.innerHTML = Components.createEmptyState('No notices available');
+          return;
+        }
+        
+        container.innerHTML = recentNotices.map(notice => `
+          <div class="mb-3 pb-3 border-bottom">
+            <h6>${Utils.escapeHtml(notice.title)}</h6>
+            <p class="mb-1 text-muted">${Utils.truncate(notice.message, 100)}</p>
+            <small class="text-muted">
+              <i class="fas fa-calendar"></i> ${Utils.formatDate(notice.created_at)}
+              <span class="badge ${Utils.getNoticeTypeBadgeClass(notice.notice_type)} ms-2">
+                ${notice.notice_type}
+              </span>
+            </small>
+          </div>
+        `).join('');
+        
+      } catch (error) {
+        console.error('Failed to load recent notices:', error);
+      }
+    }
+    
+    loadDashboard();
+  </script>
+</body>
+</html>

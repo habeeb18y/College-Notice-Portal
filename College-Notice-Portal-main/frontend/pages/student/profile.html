@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Profile - Notice Board System</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="../../css/style.css">
+</head>
+<body>
+  <div id="navbar"></div>
+  
+  <div class="page-container">
+    <div class="container">
+      <h1 class="mb-4"><i class="fas fa-user-circle me-2"></i>My Profile</h1>
+      
+      <div class="row">
+        <div class="col-md-8 mx-auto">
+          <div class="card shadow-sm">
+            <div class="card-header">
+              <h5 class="mb-0"><i class="fas fa-edit me-2"></i>Profile Information</h5>
+            </div>
+            <div class="card-body">
+              <form id="profileForm">
+                <div class="mb-3">
+                  <label for="name" class="form-label">Full Name</label>
+                  <input type="text" class="form-control" id="name" required>
+                </div>
+                
+                <div class="mb-3">
+                  <label for="email" class="form-label">Email Address</label>
+                  <input type="email" class="form-control" id="email" required>
+                </div>
+                
+                <div class="mb-3">
+                  <label class="form-label">Role</label>
+                  <input type="text" class="form-control" id="role" readonly>
+                </div>
+                
+                <div class="mb-3">
+                  <label class="form-label">Class/Department</label>
+                  <input type="text" class="form-control" id="className" readonly>
+                </div>
+                
+                <div class="mb-3">
+                  <label class="form-label">Member Since</label>
+                  <input type="text" class="form-control" id="createdAt" readonly>
+                </div>
+                
+                <div class="d-flex gap-2">
+                  <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save me-2"></i>Save Changes
+                  </button>
+                  <a href="dashboard.html" class="btn btn-secondary">
+                    <i class="fas fa-times me-2"></i>Cancel
+                  </a>
+                </div>
+              </form>
+            </div>
+          </div>
+          
+          <div class="card shadow-sm mt-4">
+            <div class="card-header bg-warning text-dark">
+              <h5 class="mb-0"><i class="fas fa-key me-2"></i>Change Password</h5>
+            </div>
+            <div class="card-body">
+              <p class="text-muted">
+                <i class="fas fa-info-circle me-2"></i>
+                Password change functionality would be implemented here. Contact your administrator for password reset.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="../../js/config.js"></script>
+  <script src="../../js/auth.js"></script>
+  <script src="../../js/api.js"></script>
+  <script src="../../js/utils.js"></script>
+  <script src="../../js/components.js"></script>
+  
+  <script>
+    Auth.requireAuth([ROLES.STUDENT]);
+    document.getElementById('navbar').innerHTML = Components.createNavbar(ROLES.STUDENT);
+    
+    async function loadProfile() {
+      try {
+        const data = await API.getStudentProfile();
+        
+        if (data.user) {
+          document.getElementById('name').value = data.user.name;
+          document.getElementById('email').value = data.user.email;
+          document.getElementById('role').value = data.user.role;
+          document.getElementById('className').value = data.user.class_name || 'Not assigned';
+          document.getElementById('createdAt').value = Utils.formatDate(data.user.created_at);
+        }
+        
+      } catch (error) {
+        Utils.showToast('Failed to load profile', 'danger');
+      }
+    }
+    
+    document.getElementById('profileForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const submitBtn = e.target.querySelector('button[type="submit"]');
+      const originalText = submitBtn.innerHTML;
+      
+      const name = document.getElementById('name').value;
+      const email = document.getElementById('email').value;
+      
+      if (!Utils.isValidEmail(email)) {
+        Utils.showToast('Please enter a valid email address', 'danger');
+        return;
+      }
+      
+      try {
+        Utils.showLoading(submitBtn);
+        
+        const response = await API.updateStudentProfile({ name, email });
+        
+        // Update localStorage with new user data
+        const currentUser = Auth.getUser();
+        currentUser.name = name;
+        currentUser.email = email;
+        Auth.saveAuth(Auth.getToken(), currentUser);
+        
+        Utils.showToast('Profile updated successfully', 'success');
+        
+      } catch (error) {
+        Utils.showToast(error.message || 'Failed to update profile', 'danger');
+      } finally {
+        Utils.hideLoading(submitBtn, originalText);
+      }
+    });
+    
+    loadProfile();
+  </script>
+</body>
+</html>
